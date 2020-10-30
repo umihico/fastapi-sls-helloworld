@@ -30,6 +30,14 @@ provider:
 custom:
   pythonRequirements:
     dockerizePip: true
+  customDomain:
+    certificateName: umihi.co
+    domainName: fastapi-demo.umihi.co
+    basePath: ''
+    stage: ${self:provider.stage}
+    createRoute53Record: true
+    endpointType: 'edge'
+    securityPolicy: tls_1_2
 # you can overwrite defaults here
 #  stage: dev
 #  region: us-east-1
@@ -69,6 +77,18 @@ functions:
     events:
       - http: 'ANY /'
       - http: 'ANY {proxy+}'
+  login:
+    handler: handler.handler
+    events:
+      - http:
+          path: login
+          method: get
+          authorizer:
+            name: auth
+            resultTtlInSeconds: 0
+            type: request
+  auth:
+    handler: handler.auth
 #    The following are a few example events you can configure
 #    NOTE: Please make sure to change your handler code to work with those events
 #    Check the event documentation for details
@@ -110,12 +130,17 @@ functions:
 #      variable2: value2
 
 # you can add CloudFormation resource templates here
-#resources:
-#  Resources:
-#    NewResource:
-#      Type: AWS::S3::Bucket
-#      Properties:
-#        BucketName: my-new-bucket
+resources:
+  Resources:
+    GatewayResponse401:
+      Type: 'AWS::ApiGateway::GatewayResponse'
+      Properties:
+        ResponseParameters:
+          gatewayresponse.header.WWW-Authenticate: "'Basic'"
+        ResponseType: DEFAULT_4XX
+        RestApiId:
+          Ref: 'ApiGatewayRestApi'
+        StatusCode: '401'
 #  Outputs:
 #     NewOutput:
 #       Description: "Description for the output"
